@@ -28,10 +28,30 @@ def init_db():
             cred_len INTEGER NOT NULL,
             credit_score INTEGER NOT NULL,
             defaults TEXT NOT NULL,
+            marital_status TEXT,
+            dependents INTEGER,
+            vehicle TEXT,
+            bank_age INTEGER,
+            savings REAL,
             risk REAL NOT NULL,
             decision TEXT NOT NULL
         )
     """)
+    
+    # Auto-migration for existing tables: check if new columns exist, add if missing
+    cursor.execute("PRAGMA table_info(assessments)")
+    existing_cols = [row["name"] for row in cursor.fetchall()]
+    new_cols = [
+        ("marital_status", "TEXT"),
+        ("dependents", "INTEGER"),
+        ("vehicle", "TEXT"),
+        ("bank_age", "INTEGER"),
+        ("savings", "REAL")
+    ]
+    for col_name, col_type in new_cols:
+        if col_name not in existing_cols:
+            cursor.execute(f"ALTER TABLE assessments ADD COLUMN {col_name} {col_type}")
+
     conn.commit()
     conn.close()
 
@@ -41,10 +61,14 @@ def insert_assessment(record):
     cursor.execute("""
         INSERT INTO assessments (
             id, date, age, gender, education, income, exp, home, 
-            loan, intent, rate, dti, cred_len, credit_score, defaults, risk, decision
+            loan, intent, rate, dti, cred_len, credit_score, defaults,
+            marital_status, dependents, vehicle, bank_age, savings,
+            risk, decision
         ) VALUES (
             :id, :date, :age, :gender, :education, :income, :exp, :home,
-            :loan, :intent, :rate, :dti, :cred_len, :credit_score, :defaults, :risk, :decision
+            :loan, :intent, :rate, :dti, :cred_len, :credit_score, :defaults,
+            :marital_status, :dependents, :vehicle, :bank_age, :savings,
+            :risk, :decision
         )
     """, record)
     conn.commit()
@@ -66,3 +90,4 @@ def delete_all_assessments():
     cursor.execute("DELETE FROM assessments")
     conn.commit()
     conn.close()
+

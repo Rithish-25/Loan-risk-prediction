@@ -13,7 +13,12 @@ export default function NewAssessment({ onAssessmentAdded }) {
         previous_loan_defaults_on_file: '',
         loan_amnt: '',
         loan_intent: '',
-        loan_int_rate: ''
+        loan_int_rate: '',
+        marital_status: '',
+        number_of_dependents: '',
+        vehicle_ownership: '',
+        bank_account_age: '',
+        savings_balance: ''
     });
 
     const [predictionResult, setPredictionResult] = useState(null);
@@ -44,7 +49,12 @@ export default function NewAssessment({ onAssessmentAdded }) {
             previous_loan_defaults_on_file: '',
             loan_amnt: '',
             loan_intent: '',
-            loan_int_rate: ''
+            loan_int_rate: '',
+            marital_status: '',
+            number_of_dependents: '',
+            vehicle_ownership: '',
+            bank_account_age: '',
+            savings_balance: ''
         });
         setPredictionResult(null);
     };
@@ -59,6 +69,9 @@ export default function NewAssessment({ onAssessmentAdded }) {
         const loan = parseFloat(formData.loan_amnt);
         const creditScore = parseInt(formData.credit_score, 10);
         const rate = parseFloat(formData.loan_int_rate);
+        const dependents = parseInt(formData.number_of_dependents, 10) || 0;
+        const bankAge = parseInt(formData.bank_account_age, 10) || 0;
+        const savings = parseFloat(formData.savings_balance) || 0;
 
         // Validation limits
         if (exp > (age - 15)) {
@@ -67,6 +80,10 @@ export default function NewAssessment({ onAssessmentAdded }) {
         }
         if (credLen > (age - 15)) {
             alert("Credit history length cannot exceed historical active age limit (Age - 15).");
+            return;
+        }
+        if (bankAge > (age - 15)) {
+            alert("Bank account age cannot exceed active banking age (Age - 15).");
             return;
         }
 
@@ -83,7 +100,12 @@ export default function NewAssessment({ onAssessmentAdded }) {
             loan_percent_income: loan / income,
             cb_person_cred_hist_length: credLen,
             credit_score: creditScore,
-            previous_loan_defaults_on_file: formData.previous_loan_defaults_on_file
+            previous_loan_defaults_on_file: formData.previous_loan_defaults_on_file,
+            marital_status: formData.marital_status || 'Single',
+            number_of_dependents: dependents,
+            vehicle_ownership: formData.vehicle_ownership || 'No',
+            bank_account_age: bankAge,
+            savings_balance: savings
         };
 
         setIsLoading(true);
@@ -204,6 +226,33 @@ export default function NewAssessment({ onAssessmentAdded }) {
                                 <option value="OTHER">Other</option>
                             </select>
                         </div>
+                        <div className="form-group">
+                            <label htmlFor="marital_status">Marital Status</label>
+                            <select 
+                                id="marital_status" 
+                                required 
+                                value={formData.marital_status} 
+                                onChange={handleChange}
+                            >
+                                <option value="" disabled>Select</option>
+                                <option value="Single">Single</option>
+                                <option value="Married">Married</option>
+                                <option value="Divorced">Divorced</option>
+                            </select>
+                        </div>
+                        <div className="form-group">
+                            <label htmlFor="number_of_dependents">Number of Dependents</label>
+                            <input 
+                                type="number" 
+                                id="number_of_dependents" 
+                                required 
+                                min="0" 
+                                max="15" 
+                                placeholder="e.g. 2" 
+                                value={formData.number_of_dependents}
+                                onChange={handleChange}
+                            />
+                        </div>
                     </div>
 
                     {/* Section 2: Finances & Credit */}
@@ -223,6 +272,19 @@ export default function NewAssessment({ onAssessmentAdded }) {
                             />
                         </div>
                         <div className="form-group">
+                            <label htmlFor="savings_balance">Savings Balance ($)</label>
+                            <input 
+                                type="number" 
+                                id="savings_balance" 
+                                required 
+                                min="0" 
+                                max="50000000" 
+                                placeholder="e.g. 150000"
+                                value={formData.savings_balance}
+                                onChange={handleChange}
+                            />
+                        </div>
+                        <div className="form-group">
                             <label htmlFor="person_emp_exp">Employment Experience (Years)</label>
                             <input 
                                 type="number" 
@@ -232,6 +294,19 @@ export default function NewAssessment({ onAssessmentAdded }) {
                                 max="60" 
                                 placeholder="e.g. 5"
                                 value={formData.person_emp_exp}
+                                onChange={handleChange}
+                            />
+                        </div>
+                        <div className="form-group">
+                            <label htmlFor="bank_account_age">Bank Account Age (Years)</label>
+                            <input 
+                                type="number" 
+                                id="bank_account_age" 
+                                required 
+                                min="0" 
+                                max="60" 
+                                placeholder="e.g. 6"
+                                value={formData.bank_account_age}
                                 onChange={handleChange}
                             />
                         </div>
@@ -261,7 +336,20 @@ export default function NewAssessment({ onAssessmentAdded }) {
                                 onChange={handleChange}
                             />
                         </div>
-                        <div className="form-group full-width">
+                        <div className="form-group">
+                            <label htmlFor="vehicle_ownership">Vehicle Ownership</label>
+                            <select 
+                                id="vehicle_ownership" 
+                                required 
+                                value={formData.vehicle_ownership} 
+                                onChange={handleChange}
+                            >
+                                <option value="" disabled>Select</option>
+                                <option value="Yes">Yes (Vehicle Owned)</option>
+                                <option value="No">No</option>
+                            </select>
+                        </div>
+                        <div className="form-group">
                             <label htmlFor="previous_loan_defaults_on_file">Has Previous Loan Defaults?</label>
                             <select 
                                 id="previous_loan_defaults_on_file" 

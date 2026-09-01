@@ -77,10 +77,10 @@ export default function AssessmentLogs({ assessments = [], onClearLogs }) {
                             <tr>
                                 <th>Date/Time</th>
                                 <th>Demographics</th>
-                                <th>Employment</th>
+                                <th>Financials & Savings</th>
                                 <th>Loan Amount</th>
                                 <th>Intent</th>
-                                <th>Credit Score</th>
+                                <th>Credit & History</th>
                                 <th>Risk Prob</th>
                                 <th>Decision</th>
                             </tr>
@@ -118,13 +118,15 @@ export default function AssessmentLogs({ assessments = [], onClearLogs }) {
                                                     {(item.gender || '').toUpperCase()}, {item.age}y
                                                 </div>
                                                 <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                                                    {item.education} / {item.home}
+                                                    {item.education} • {item.marital_status || 'Single'}
+                                                    {item.dependents !== undefined && item.dependents !== null ? ` (${item.dependents} dep)` : ''}
                                                 </div>
                                             </td>
                                             <td>
                                                 <div>${Number(item.income).toLocaleString()}/yr</div>
                                                 <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                                                    {item.exp} yrs exp
+                                                    {item.savings !== undefined && item.savings !== null ? `Savings: $${Number(item.savings).toLocaleString()}` : `${item.exp}y exp`}
+                                                    {item.vehicle ? ` • Veh: ${item.vehicle}` : ''}
                                                 </div>
                                             </td>
                                             <td style={{ fontWeight: 600 }}>${Number(item.loan).toLocaleString()}</td>
@@ -132,7 +134,7 @@ export default function AssessmentLogs({ assessments = [], onClearLogs }) {
                                             <td>
                                                 <div style={{ fontWeight: 600 }}>{item.credit_score}</div>
                                                 <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                                                    {item.cred_len}y cred hist
+                                                    {item.cred_len}y cred {item.bank_age !== undefined && item.bank_age !== null ? `• ${item.bank_age}y bank` : ''}
                                                 </div>
                                             </td>
                                             <td className={`${riskColor} font-bold`}>{Number(item.risk).toFixed(1)}%</td>

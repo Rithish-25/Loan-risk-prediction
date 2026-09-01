@@ -6,6 +6,7 @@ import AssessmentLogs from './components/AssessmentLogs';
 export default function App() {
     const [activeTab, setActiveTab] = useState('dashboard');
     const [assessments, setAssessments] = useState([]);
+    const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
     const fetchLogs = useCallback(async () => {
         try {
@@ -39,10 +40,38 @@ export default function App() {
         }
     };
 
+    const handleTabSwitch = (tab) => {
+        setActiveTab(tab);
+        setMobileMenuOpen(false);
+        if (tab === 'dashboard' || tab === 'logs') {
+            fetchLogs();
+        }
+    };
+
     return (
         <div className="app-container">
+            {/* Mobile Header Bar */}
+            <div className="mobile-header">
+                <div className="mobile-logo">
+                    <i className="fa-solid fa-shield-halved"></i>
+                    <span>CreditGuard AI</span>
+                </div>
+                <button 
+                    className="mobile-menu-btn" 
+                    onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+                    aria-label="Toggle Menu"
+                >
+                    <i className={`fa-solid ${mobileMenuOpen ? 'fa-xmark' : 'fa-bars'}`}></i>
+                </button>
+            </div>
+
+            {/* Mobile Backdrop Overlay */}
+            {mobileMenuOpen && (
+                <div className="sidebar-backdrop" onClick={() => setMobileMenuOpen(false)}></div>
+            )}
+
             {/* Sidebar Navigation */}
-            <aside className="sidebar">
+            <aside className={`sidebar ${mobileMenuOpen ? 'sidebar-open' : ''}`}>
                 <div className="sidebar-logo">
                     <i className="fa-solid fa-shield-halved"></i>
                     <span>CreditGuard AI</span>
@@ -51,10 +80,7 @@ export default function App() {
                     <li>
                         <a 
                             className={`menu-item ${activeTab === 'dashboard' ? 'active' : ''}`}
-                            onClick={() => {
-                                setActiveTab('dashboard');
-                                fetchLogs();
-                            }}
+                            onClick={() => handleTabSwitch('dashboard')}
                         >
                             <i className="fa-solid fa-chart-pie"></i>
                             <span>Dashboard</span>
@@ -63,7 +89,7 @@ export default function App() {
                     <li>
                         <a 
                             className={`menu-item ${activeTab === 'assessment' ? 'active' : ''}`}
-                            onClick={() => setActiveTab('assessment')}
+                            onClick={() => handleTabSwitch('assessment')}
                         >
                             <i className="fa-solid fa-clipboard-check"></i>
                             <span>New Assessment</span>
@@ -72,10 +98,7 @@ export default function App() {
                     <li>
                         <a 
                             className={`menu-item ${activeTab === 'logs' ? 'active' : ''}`}
-                            onClick={() => {
-                                setActiveTab('logs');
-                                fetchLogs();
-                            }}
+                            onClick={() => handleTabSwitch('logs')}
                         >
                             <i className="fa-solid fa-list-ul"></i>
                             <span>Assessment Logs</span>
@@ -96,10 +119,7 @@ export default function App() {
                 {activeTab === 'dashboard' && (
                     <Dashboard 
                         assessments={assessments} 
-                        onNavigateToLogs={() => {
-                            setActiveTab('logs');
-                            fetchLogs();
-                        }}
+                        onNavigateToLogs={() => handleTabSwitch('logs')}
                     />
                 )}
 
