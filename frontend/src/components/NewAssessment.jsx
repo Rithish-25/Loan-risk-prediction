@@ -74,16 +74,16 @@ export default function NewAssessment({ onAssessmentAdded }) {
         const savings = parseFloat(formData.savings_balance) || 0;
 
         // Validation limits
-        if (exp > (age - 15)) {
-            alert("Employment experience years cannot exceed historical active working age limit (Age - 15).");
+        if (exp >= age) {
+            alert("Employment experience years cannot exceed applicant age.");
             return;
         }
-        if (credLen > (age - 15)) {
-            alert("Credit history length cannot exceed historical active age limit (Age - 15).");
+        if (credLen >= age) {
+            alert("Credit history length cannot exceed applicant age.");
             return;
         }
-        if (bankAge > (age - 15)) {
-            alert("Bank account age cannot exceed active banking age (Age - 15).");
+        if (bankAge >= age) {
+            alert("Bank account age cannot exceed applicant age.");
             return;
         }
 
