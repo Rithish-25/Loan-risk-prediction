@@ -118,7 +118,17 @@ export default function NewAssessment({ onAssessmentAdded }) {
 
             if (!response.ok) {
                 const errData = await response.json().catch(() => ({}));
-                alert('Prediction Error: ' + (errData.detail || 'Server encountered an issue.'));
+                let errorMsg = 'Server encountered an issue.';
+                if (errData.detail) {
+                    if (Array.isArray(errData.detail)) {
+                        errorMsg = errData.detail.map(d => `${d.loc ? d.loc[d.loc.length - 1] + ': ' : ''}${d.msg}`).join(', ');
+                    } else if (typeof errData.detail === 'string') {
+                        errorMsg = errData.detail;
+                    } else {
+                        errorMsg = JSON.stringify(errData.detail);
+                    }
+                }
+                alert('Prediction Error: ' + errorMsg);
                 setIsLoading(false);
                 return;
             }
