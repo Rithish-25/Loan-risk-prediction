@@ -11,8 +11,11 @@ if not hasattr(_c, '_RemainderColsList'):
 
 def patch_model_imputers(obj):
     if hasattr(obj, '__dict__'):
-        if isinstance(obj, SimpleImputer) and not hasattr(obj, '_fill_dtype'):
-            obj._fill_dtype = None
+        if isinstance(obj, SimpleImputer):
+            if getattr(obj, 'strategy', '') in ['most_frequent', 'constant']:
+                obj._fill_dtype = object
+            else:
+                obj._fill_dtype = float
         for k, v in list(obj.__dict__.items()):
             patch_model_imputers(v)
     elif isinstance(obj, (list, tuple)):
