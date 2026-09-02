@@ -1,18 +1,39 @@
 import requests
 import sqlite3
 import os
+import time
 
 LIVE_URL = "https://loan-risk-prediction-z9jk.onrender.com/api/history"
 DB_PATH = os.path.join(os.path.dirname(__file__), "loans.db")
 
 def sync():
-    print(f"Fetching live database records from {LIVE_URL}...")
+    print(f"Connecting to live server at {LIVE_URL}...")
+    print("Note: If Render is waking up from sleep mode, this may take 20-40 seconds on first request...")
+    
+    max_retries = 3
+    response = None
+    
+    for attempt in range(1, max_retries + 1):
+        try:
+            # 60s timeout to allow Render free tier to spin up from sleep
+            response = requests.get(LIVE_URL, timeout=60)
+            if response.status_code == 200:
+                break
+            else:
+                print(f"Server returned status {response.status_code}. Retrying in 5s... (Attempt {attempt}/{max_retries})")
+                time.sleep(5)
+        except requests.exceptions.Timeout:
+            print(f"Render server is still spinning up... (Attempt {attempt}/{max_retries})")
+            time.sleep(3)
+        except Exception as e:
+            print(f"Connecting... (Attempt {attempt}/{max_retries})")
+            time.sleep(3)
+            
+    if response is None or response.status_code != 200:
+        print("Error: Could not connect to live Render server after retries.")
+        return
+    
     try:
-        response = requests.get(LIVE_URL, timeout=10)
-        if response.status_code != 200:
-            print(f"Failed to fetch live records: Status {response.status_code}")
-            return
-        
         records = response.json()
         print(f"Retrieved {len(records)} records from live cloud server.")
         
@@ -63,7 +84,8 @@ def sync():
         conn.close()
         print("Success: Local loans.db updated with all live server records!")
     except Exception as e:
-        print(f"Error syncing database: {str(e)}")
+        print(f"Error updating database: {str(e)}")
 
 if __name__ == "__main__":
     sync()
+
