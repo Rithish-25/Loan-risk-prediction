@@ -14,6 +14,6 @@ npm install
 npm run dev
 
 notebook (cd to notebook directory)
-python check.py
-python check_xgboost.py
-python compare_models.py
+python train_all_models.py     # Train all 5 ML models (RF, XGB, LGBM, LogReg, GBM)
+python evaluate_models.py      # Evaluate & compare performance metrics across all 5 models
+python compare_models.py       # Compare predictions for a sample applicant across all 5 models
