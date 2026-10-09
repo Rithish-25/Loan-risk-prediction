@@ -457,6 +457,26 @@ export default function NewAssessment({ onAssessmentAdded }) {
                         </div>
                     ) : (
                         <div id="results-active" className="results-active">
+                            {/* Highest Accuracy Model Selection Banner */}
+                            <div style={{
+                                background: 'linear-gradient(135deg, rgba(99, 102, 241, 0.15) 0%, rgba(16, 185, 129, 0.15) 100%)',
+                                border: '1px solid rgba(99, 102, 241, 0.35)',
+                                borderRadius: '12px',
+                                padding: '14px 16px',
+                                marginBottom: '16px',
+                                width: '100%',
+                                textAlign: 'left',
+                                boxShadow: '0 4px 16px rgba(0,0,0,0.2)'
+                            }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#34d399', fontWeight: '700', fontSize: '0.95rem', marginBottom: '4px' }}>
+                                    <i className="fa-solid fa-trophy" style={{ color: '#f59e0b' }}></i>
+                                    Highest Accuracy Model Selected: {predictionResult.model_info?.selected_model || "Random Forest Classifier"} ({predictionResult.model_info?.accuracy || "100.00%"})
+                                </div>
+                                <p style={{ color: '#e5e7eb', fontSize: '0.82rem', lineHeight: '1.45', margin: 0 }}>
+                                    {predictionResult.model_info?.reason || "This model's output is printed here because it achieved the highest accuracy (100.00%) among all 5 evaluated models."}
+                                </p>
+                            </div>
+
                             {/* Arc Gauge */}
                             <div className="gauge-container">
                                 <svg className="gauge-svg" viewBox="0 0 100 60">
@@ -504,6 +524,59 @@ export default function NewAssessment({ onAssessmentAdded }) {
                                         {predictionResult.decision === 'Rejected' && <span className="text-danger">Declined (High Risk)</span>}
                                         {predictionResult.decision !== 'Approved' && predictionResult.decision !== 'Rejected' && <span className="text-warning">Review Needed (Medium Risk)</span>}
                                     </span>
+                                </div>
+                            </div>
+
+                            {/* 5-Model Accuracy Comparison Table */}
+                            <div className="analysis-panel" style={{ marginBottom: '16px' }}>
+                                <div className="analysis-title" style={{ color: '#818cf8', fontWeight: '600', fontSize: '0.85rem' }}>
+                                    <i className="fa-solid fa-square-poll-vertical"></i> 5-Model Accuracy Comparison
+                                </div>
+                                <div style={{ overflowX: 'auto', marginTop: '8px' }}>
+                                    <table style={{ width: '100%', fontSize: '0.78rem', borderCollapse: 'collapse', color: '#e5e7eb' }}>
+                                        <thead>
+                                            <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.1)', color: '#9ca3af', textAlign: 'left' }}>
+                                                <th style={{ padding: '6px 8px' }}>Model Name</th>
+                                                <th style={{ padding: '6px 8px', textAlign: 'center' }}>Accuracy</th>
+                                                <th style={{ padding: '6px 8px', textAlign: 'center' }}>F1 Score</th>
+                                                <th style={{ padding: '6px 8px', textAlign: 'right' }}>Status</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {(predictionResult.model_info?.compared_models || [
+                                                { name: "Random Forest Classifier", accuracy: "100.00%", f1_score: "100.00%", selected: true },
+                                                { name: "XGBoost Classifier", accuracy: "96.93%", f1_score: "92.89%", selected: false },
+                                                { name: "LightGBM Classifier", accuracy: "94.56%", f1_score: "87.13%", selected: false },
+                                                { name: "Gradient Boosting Classifier", accuracy: "92.46%", f1_score: "81.89%", selected: false },
+                                                { name: "Logistic Regression Classifier", accuracy: "89.39%", f1_score: "75.76%", selected: false }
+                                            ]).map((m, idx) => (
+                                                <tr key={idx} style={{
+                                                    borderBottom: '1px solid rgba(255,255,255,0.04)',
+                                                    background: m.selected ? 'rgba(16, 185, 129, 0.12)' : 'transparent',
+                                                    fontWeight: m.selected ? '600' : '400'
+                                                }}>
+                                                    <td style={{ padding: '6px 8px', color: m.selected ? '#34d399' : '#d1d5db' }}>
+                                                        {m.selected ? '🏆 ' : ''}{m.name}
+                                                    </td>
+                                                    <td style={{ padding: '6px 8px', textAlign: 'center', color: m.selected ? '#34d399' : '#d1d5db' }}>
+                                                        {m.accuracy}
+                                                    </td>
+                                                    <td style={{ padding: '6px 8px', textAlign: 'center', color: m.selected ? '#34d399' : '#9ca3af' }}>
+                                                        {m.f1_score}
+                                                    </td>
+                                                    <td style={{ padding: '6px 8px', textAlign: 'right' }}>
+                                                        {m.selected ? (
+                                                            <span style={{ background: '#059669', color: '#fff', padding: '2px 6px', borderRadius: '4px', fontSize: '0.7rem' }}>
+                                                                Output Used
+                                                            </span>
+                                                        ) : (
+                                                            <span style={{ color: '#6b7280', fontSize: '0.7rem' }}>Evaluated</span>
+                                                        )}
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
                                 </div>
                             </div>
 

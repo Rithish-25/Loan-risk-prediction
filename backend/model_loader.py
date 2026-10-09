@@ -25,37 +25,43 @@ def patch_model_imputers(obj):
         for k, v in obj.items():
             patch_model_imputers(v)
 
-RF_MODEL = None
-XGB_MODEL = None
+MODELS = {}
 
-RF_MODEL_PATH = os.path.join(os.path.dirname(__file__), "..", "notebook", "loan_risk_model_random_forest.pkl")
-XGB_MODEL_PATH = os.path.join(os.path.dirname(__file__), "..", "notebook", "loan_risk_model_xgboost.pkl")
+MODEL_FILES = {
+    "random_forest": "loan_risk_model_random_forest.pkl",
+    "xgboost": "loan_risk_model_xgboost.pkl",
+    "lightgbm": "loan_risk_model_lightgbm.pkl",
+    "logistic_regression": "loan_risk_model_logistic_regression.pkl",
+    "gradient_boosting": "loan_risk_model_gradient_boosting.pkl",
+}
 
 def load_model():
-    global RF_MODEL, XGB_MODEL
-    if os.path.exists(XGB_MODEL_PATH):
-        try:
-            XGB_MODEL = joblib.load(XGB_MODEL_PATH)
-            patch_model_imputers(XGB_MODEL)
-            print("XGBoost ML Model loaded successfully.")
-        except Exception as e:
-            print(f"Error loading XGBoost model: {str(e)}")
-            
-    if os.path.exists(RF_MODEL_PATH):
-        try:
-            RF_MODEL = joblib.load(RF_MODEL_PATH)
-            patch_model_imputers(RF_MODEL)
-            print("Random Forest ML Model loaded successfully.")
-        except Exception as e:
-            print(f"Error loading Random Forest model: {str(e)}")
+    global MODELS
+    notebook_dir = os.path.join(os.path.dirname(__file__), "..", "notebook")
+    
+    for key, filename in MODEL_FILES.items():
+        file_path = os.path.join(notebook_dir, filename)
+        if os.path.exists(file_path):
+            try:
+                loaded_m = joblib.load(file_path)
+                patch_model_imputers(loaded_m)
+                MODELS[key] = loaded_m
+                print(f"Loaded ML Model: {key}")
+            except Exception as e:
+                print(f"Error loading model {key}: {str(e)}")
 
 def get_model():
-    # Returns XGBoost model as primary for 2nd Review, falls back to RF if needed
-    return XGB_MODEL if XGB_MODEL is not None else RF_MODEL
+    # Returns XGBoost as primary default, or first available model
+    if "xgboost" in MODELS:
+        return MODELS["xgboost"]
+    elif "random_forest" in MODELS:
+        return MODELS["random_forest"]
+    elif len(MODELS) > 0:
+        return list(MODELS.values())[0]
+    return None
 
-def get_xgb_model():
-    return XGB_MODEL
+def get_model_by_name(name: str):
+    return MODELS.get(name.lower().replace(" ", "_"), get_model())
 
-def get_rf_model():
-    return RF_MODEL
-
+def get_all_models():
+    return MODELS

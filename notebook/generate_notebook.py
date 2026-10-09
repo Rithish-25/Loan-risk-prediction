@@ -1,0 +1,232 @@
+import json
+import os
+
+notebook_content = {
+ "cells": [
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "# 📊 Loan Risk Model Performance & Accuracy Evaluation\n",
+    "\n",
+    "This notebook evaluates and compares the performance of all **5 trained credit risk models**:\n",
+    "1. 🌲 **Random Forest Classifier** (`loan_risk_model_random_forest.pkl`)\n",
+    "2. ⚡ **XGBoost Classifier** (`loan_risk_model_xgboost.pkl`)\n",
+    "3. 🚀 **LightGBM Classifier** (`loan_risk_model_lightgbm.pkl`)\n",
+    "4. 📈 **Logistic Regression Classifier** (`loan_risk_model_logistic_regression.pkl`)\n",
+    "5. 🛡️ **Gradient Boosting Classifier** (`loan_risk_model_gradient_boosting.pkl`)\n",
+    "\n",
+    "### Evaluation Metrics:\n",
+    "- **Accuracy**\n",
+    "- **Precision**\n",
+    "- **Recall**\n",
+    "- **F1 Score**\n",
+    "- **ROC AUC**\n",
+    "- **Confusion Matrix**"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": None,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "import warnings\n",
+    "warnings.filterwarnings('ignore')\n",
+    "\n",
+    "import sklearn.compose._column_transformer as _c\n",
+    "from sklearn.impute import SimpleImputer\n",
+    "\n",
+    "# Patch for scikit-learn version compatibility during unpickling\n",
+    "if not hasattr(_c, '_RemainderColsList'):\n",
+    "    class _RemainderColsList(list):\n",
+    "        pass\n",
+    "    _c._RemainderColsList = _RemainderColsList\n",
+    "\n",
+    "def patch_model_imputers(obj):\n",
+    "    if hasattr(obj, '__dict__'):\n",
+    "        if isinstance(obj, SimpleImputer):\n",
+    "            if getattr(obj, 'strategy', '') in ['most_frequent', 'constant']:\n",
+    "                obj._fill_dtype = object\n",
+    "            else:\n",
+    "                obj._fill_dtype = float\n",
+    "        for k, v in list(obj.__dict__.items()):\n",
+    "            patch_model_imputers(v)\n",
+    "    elif isinstance(obj, (list, tuple)):\n",
+    "        for item in obj:\n",
+    "            patch_model_imputers(item)\n",
+    "    elif isinstance(obj, dict):\n",
+    "        for k, v in obj.items():\n",
+    "            patch_model_imputers(v)\n",
+    "\n",
+    "import os\n",
+    "import joblib\n",
+    "import pandas as pd\n",
+    "import numpy as np\n",
+    "import matplotlib.pyplot as plt\n",
+    "from sklearn.model_selection import train_test_split\n",
+    "from sklearn.metrics import (\n",
+    "    accuracy_score, precision_score, recall_score, f1_score, roc_auc_score,\n",
+    "    confusion_matrix, ConfusionMatrixDisplay\n",
+    ")\n",
+    "from IPython.display import display\n",
+    "\n",
+    "# Setup paths\n",
+    "base_dir = os.path.dirname(os.path.abspath(__file__)) if '__file__' in locals() else '.'\n",
+    "dataset_path = os.path.join(base_dir, 'Dataset_XGBoost.csv')\n",
+    "if not os.path.exists(dataset_path):\n",
+    "    dataset_path = os.path.join(base_dir, 'Dataset.csv')\n",
+    "\n",
+    "model_files = {\n",
+    "    'Random Forest': 'loan_risk_model_random_forest.pkl',\n",
+    "    'XGBoost': 'loan_risk_model_xgboost.pkl',\n",
+    "    'LightGBM': 'loan_risk_model_lightgbm.pkl',\n",
+    "    'Logistic Regression': 'loan_risk_model_logistic_regression.pkl',\n",
+    "    'Gradient Boosting': 'loan_risk_model_gradient_boosting.pkl'\n",
+    "}\n",
+    "\n",
+    "print(f\"Using Dataset: {os.path.abspath(dataset_path)}\")\n",
+    "for name, file in model_files.items():\n",
+    "    print(f\"Using {name}: {os.path.abspath(os.path.join(base_dir, file))}\")"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": None,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "# 2. Load dataset and models with compatibility patch\n",
+    "print(\"Loading Dataset...\")\n",
+    "df = pd.read_csv(dataset_path)\n",
+    "\n",
+    "loaded_models = {}\n",
+    "print(\"Loading models...\")\n",
+    "for name, filename in model_files.items():\n",
+    "    path = os.path.join(base_dir, filename)\n",
+    "    if os.path.exists(path):\n",
+    "        m = joblib.load(path)\n",
+    "        patch_model_imputers(m)\n",
+    "        loaded_models[name] = m\n",
+    "        print(f\"✅ Successfully loaded: {name}\")\n",
+    "    else:\n",
+    "        print(f\"⚠️ Missing model file: {filename}\")"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": None,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "# 3. Prepare Features & Train-Test Split (80:20)\n",
+    "X = df.drop('loan_status', axis=1)\n",
+    "y = df['loan_status']\n",
+    "\n",
+    "X_train, X_test, y_train, y_test = train_test_split(\n",
+    "    X, y, test_size=0.2, random_state=42\n",
+    ")\n",
+    "\n",
+    "print(f\"Train set shape: {X_train.shape}\")\n",
+    "print(f\"Test set shape: {X_test.shape}\")"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": None,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "# 4. Evaluate All 5 Models\n",
+    "results = {}\n",
+    "confusion_matrices = {}\n",
+    "\n",
+    "for name, model in loaded_models.items():\n",
+    "    # Preprocess & Predict\n",
+    "    X_transformed = model.named_steps['preprocessor'].transform(X_test)\n",
+    "    y_pred = model.named_steps['classifier'].predict(X_transformed)\n",
+    "    \n",
+    "    if hasattr(model.named_steps['classifier'], 'predict_proba'):\n",
+    "        y_prob = model.named_steps['classifier'].predict_proba(X_transformed)[:, 1]\n",
+    "        auc = roc_auc_score(y_test, y_prob)\n",
+    "    elif hasattr(model.named_steps['classifier'], 'decision_function'):\n",
+    "        y_prob = model.named_steps['classifier'].decision_function(X_transformed)\n",
+    "        auc = roc_auc_score(y_test, y_prob)\n",
+    "    else:\n",
+    "        auc = np.nan\n",
+    "        \n",
+    "    results[name] = {\n",
+    "        'Accuracy': accuracy_score(y_test, y_pred),\n",
+    "        'Precision': precision_score(y_test, y_pred),\n",
+    "        'Recall': recall_score(y_test, y_pred),\n",
+    "        'F1 Score': f1_score(y_test, y_pred),\n",
+    "        'ROC AUC': auc\n",
+    "    }\n",
+    "    confusion_matrices[name] = confusion_matrix(y_test, y_pred)\n",
+    "\n",
+    "print(\"All 5 models evaluated successfully!\")"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": None,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "# 5. Display Model Comparison Table\n",
+    "comparison_df = pd.DataFrame(results).T\n",
+    "comparison_df_formatted = comparison_df.copy()\n",
+    "\n",
+    "for col in ['Accuracy', 'Precision', 'Recall', 'F1 Score']:\n",
+    "    comparison_df_formatted[col] = comparison_df_formatted[col].apply(lambda x: f\"{x*100:.2f}%\")\n",
+    "comparison_df_formatted['ROC AUC'] = comparison_df_formatted['ROC AUC'].apply(lambda x: f\"{x:.4f}\")\n",
+    "\n",
+    "print(\"=\"*55)\n",
+    "print(\"              5-MODEL COMPARISON TABLE\")\n",
+    "print(\"=\"*55)\n",
+    "display(comparison_df_formatted)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": None,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "# 6. Plot Performance Bar Charts & Confusion Matrices\n",
+    "fig, ax = plt.subplots(figsize=(10, 5))\n",
+    "metrics_to_plot = comparison_df[['Accuracy', 'F1 Score']] * 100\n",
+    "metrics_to_plot.plot(kind='bar', ax=ax, colormap='viridis')\n",
+    "plt.title('5 Models Performance Comparison (Accuracy & F1 Score)')\n",
+    "plt.ylabel('Percentage (%)')\n",
+    "plt.ylim(50, 105)\n",
+    "plt.xticks(rotation=15)\n",
+    "plt.grid(axis='y', linestyle='--', alpha=0.7)\n",
+    "plt.legend(loc='lower right')\n",
+    "plt.tight_layout()\n",
+    "plt.show()\n",
+    "\n",
+    "# Plot Confusion Matrices for all 5 models\n",
+    "fig, axes = plt.subplots(1, 5, figsize=(22, 4))\n",
+    "for idx, (name, cm) in enumerate(confusion_matrices.items()):\n",
+    "    disp = ConfusionMatrixDisplay(confusion_matrix=cm, display_labels=['Safe', 'Default'])\n",
+    "    disp.plot(ax=axes[idx], cmap='Blues', colorbar=False)\n",
+    "    axes[idx].set_title(name, fontsize=10)\n",
+    "plt.tight_layout()\n",
+    "plt.show()"
+   ]
+  }
+ ],
+ "metadata": {
+  "language_info": {
+   "name": "python"
+  }
+ },
+ "nbformat": 4,
+ "nbformat_minor": 2
+}
+
+with open(r"d:\Research\Loan Risk\notebook\model_accuracy.ipynb", "w", encoding="utf-8") as f:
+    json.dump(notebook_content, f, indent=1)
+
+print("model_accuracy.ipynb successfully updated with _RemainderColsList patch and all 5 models!")
