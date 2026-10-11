@@ -195,12 +195,29 @@ async def predict_loan_risk(req: PredictRequest):
             {"name": "Logistic Regression Classifier", "accuracy": "89.39%", "f1_score": "75.76%", "selected": False, "type": "Linear Baseline"}
         ]
 
+        # Dynamically determine the model with the highest accuracy
+        best_m = max(all_models_summary, key=lambda m: float(m["accuracy"].replace("%", "")))
+        for m in all_models_summary:
+            m["selected"] = (m["name"] == best_m["name"])
+
         model_info = {
-            "selected_model": "Random Forest Classifier",
-            "accuracy": "100.00%",
-            "reason": "This model's output is printed here because it achieved the highest accuracy (100.00%) among all 5 evaluated models.",
+            "selected_model": best_m["name"],
+            "accuracy": best_m["accuracy"],
+            "reason": f"This model's output is printed here because it achieved the highest accuracy ({best_m['accuracy']}) among all 5 evaluated models.",
             "compared_models": all_models_summary
         }
+
+        # Print compared accuracy of all 5 models directly to terminal console
+        print("\n" + "=" * 68)
+        print(f"🏆 Highest Accuracy Model Selected: {best_m['name']} ({best_m['accuracy']})")
+        print(f"This model's output is printed here because it achieved the highest accuracy ({best_m['accuracy']}).")
+        print("-" * 68)
+        print(f"{'Model Name':<32} {'Accuracy':<12} {'F1-Score':<12} {'Status'}")
+        print("-" * 68)
+        for m in all_models_summary:
+            status_str = "Output Used (Highest)" if m["selected"] else "Evaluated"
+            print(f"{m['name']:<32} {m['accuracy']:<12} {m['f1_score']:<12} {status_str}")
+        print("=" * 68 + "\n")
 
         return {
             "id": tx_id,

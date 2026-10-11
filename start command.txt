@@ -13,7 +13,13 @@ frontend (cd to frontend directory)
 npm install
 npm run dev
 
-notebook (cd to notebook directory)
-python train_all_models.py     # Train all 5 ML models (RF, XGB, LGBM, LogReg, GBM)
-python evaluate_models.py      # Evaluate & compare performance metrics across all 5 models
-python compare_models.py       # Compare predictions for a sample applicant across all 5 models
+view 5-model accuracy output in terminal (open a terminal in project root directory):
+python notebook/evaluate_models.py
+
+(or if you are inside notebook directory):
+cd notebook
+python evaluate_models.py
+
+other model commands (run from project root directory):
+python notebook/train_all_models.py     # Retrain all 5 ML models (RF, XGB, LGBM, LogReg, GBM)
+python notebook/compare_models.py       # Compare predictions for a sample applicant across all 5 models

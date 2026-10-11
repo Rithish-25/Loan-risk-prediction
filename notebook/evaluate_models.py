@@ -1,5 +1,8 @@
 import os
 import sys
+import warnings
+warnings.filterwarnings('ignore')
+
 import joblib
 import pandas as pd
 from sklearn.model_selection import train_test_split
@@ -71,5 +74,16 @@ for model_name, filename in models_info:
     print()
 
 results_df = pd.DataFrame(results)
-print("==================== FINAL COMPARISON TABLE ====================")
+
+# Dynamically find the model with the highest accuracy
+best_model = max(results, key=lambda x: x["Accuracy (%)"])
+best_model_name = best_model["Model"]
+best_accuracy = best_model["Accuracy (%)"]
+
+print("\n" + "=" * 68)
+print(f"🏆 Highest Accuracy Model Selected: {best_model_name} ({best_accuracy:.2f}%)")
+print(f"This model's output is printed because it achieved the highest accuracy ({best_accuracy:.2f}%).")
+print("=" * 68)
+print("\n==================== 5-MODEL COMPARISON TABLE ====================")
 print(results_df.to_string(index=False))
+print("=" * 68 + "\n")
