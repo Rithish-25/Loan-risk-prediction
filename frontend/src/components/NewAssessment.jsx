@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 
 export default function NewAssessment({ onAssessmentAdded }) {
     const [formData, setFormData] = useState({
+        applicant_name: '',
         person_age: '',
         person_gender: '',
         person_education: '',
@@ -23,6 +24,58 @@ export default function NewAssessment({ onAssessmentAdded }) {
 
     const [predictionResult, setPredictionResult] = useState(null);
     const [isLoading, setIsLoading] = useState(false);
+    const [isDownloadingPdf, setIsDownloadingPdf] = useState(false);
+
+    const handleDownloadPdf = async () => {
+        if (!predictionResult) return;
+        setIsDownloadingPdf(true);
+        try {
+            const reportPayload = {
+                ...formData,
+                ...predictionResult,
+                date: predictionResult?.date || new Date().toISOString(),
+                applicant_name: predictionResult.applicant_name || formData.applicant_name || 'Applicant',
+                person_income: parseFloat(formData.person_income) || 0,
+                savings_balance: parseFloat(formData.savings_balance) || 0,
+                loan_amnt: parseFloat(formData.loan_amnt) || 0,
+                loan_int_rate: parseFloat(formData.loan_int_rate) || 0,
+                credit_score: parseInt(formData.credit_score, 10) || 650,
+                cb_person_cred_hist_length: parseInt(formData.cb_person_cred_hist_length, 10) || 0,
+                person_age: parseInt(formData.person_age, 10) || 28,
+                person_emp_exp: parseInt(formData.person_emp_exp, 10) || 0,
+                bank_account_age: parseInt(formData.bank_account_age, 10) || 1,
+                number_of_dependents: parseInt(formData.number_of_dependents, 10) || 0,
+                loan_percent_income: (parseFloat(formData.loan_amnt) || 0) / (parseFloat(formData.person_income) || 1)
+            };
+
+            const response = await fetch('/api/download-report-pdf', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(reportPayload)
+            });
+
+            if (!response.ok) {
+                throw new Error('Failed to generate PDF report from server.');
+            }
+
+            const blob = await response.blob();
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            const appName = predictionResult.applicant_name || formData.applicant_name || 'Applicant';
+            const cleanName = appName.replace(/[/\\?%*:|"<>]/g, '').trim() || 'Applicant';
+            a.download = `${cleanName} Loan Risk.pdf`;
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            window.URL.revokeObjectURL(url);
+        } catch (err) {
+            console.error('PDF Download Error:', err);
+            alert('Error generating professional PDF report: ' + err.message);
+        } finally {
+            setIsDownloadingPdf(false);
+        }
+    };
 
     // Calculate live DTI string
     const incomeNum = parseFloat(formData.person_income) || 0;
@@ -38,6 +91,7 @@ export default function NewAssessment({ onAssessmentAdded }) {
 
     const handleReset = () => {
         setFormData({
+            applicant_name: '',
             person_age: '',
             person_gender: '',
             person_education: '',
@@ -88,6 +142,7 @@ export default function NewAssessment({ onAssessmentAdded }) {
         }
 
         const payload = {
+            applicant_name: formData.applicant_name.trim() || 'Applicant',
             person_age: age,
             person_gender: formData.person_gender,
             person_education: formData.person_education,
@@ -150,7 +205,7 @@ export default function NewAssessment({ onAssessmentAdded }) {
 
     // Calculate gauge parameters
     const riskProb = predictionResult ? predictionResult.risk : 0;
-    const offset = 220 - ((riskProb / 100) * 110);
+    const offset = 290 - ((riskProb / 100) * 145);
 
     let gaugeColor = 'var(--color-success)';
     let statusClass = 'safe';
@@ -178,6 +233,17 @@ export default function NewAssessment({ onAssessmentAdded }) {
                     {/* Section 1: Personal Profile */}
                     <div className="form-section-title">1. Personal Profile</div>
                     <div className="form-grid">
+                        <div className="form-group full-width">
+                            <label htmlFor="applicant_name">Applicant Full Name</label>
+                            <input 
+                                type="text" 
+                                id="applicant_name" 
+                                required 
+                                placeholder="e.g. Rahul Sharma" 
+                                value={formData.applicant_name}
+                                onChange={handleChange}
+                            />
+                        </div>
                         <div className="form-group">
                             <label htmlFor="person_age">Age (Years)</label>
                             <input 
@@ -269,26 +335,26 @@ export default function NewAssessment({ onAssessmentAdded }) {
                     <div className="form-section-title">2. Financial & Credit History</div>
                     <div className="form-grid">
                         <div className="form-group">
-                            <label htmlFor="person_income">Annual Income ($)</label>
+                            <label htmlFor="person_income">Annual Income (₹)</label>
                             <input 
                                 type="number" 
                                 id="person_income" 
                                 required 
                                 min="1000" 
-                                max="10000000" 
-                                placeholder="e.g. 60000"
+                                max="100000000" 
+                                placeholder="e.g. 600000"
                                 value={formData.person_income}
                                 onChange={handleChange}
                             />
                         </div>
                         <div className="form-group">
-                            <label htmlFor="savings_balance">Savings Balance ($)</label>
+                            <label htmlFor="savings_balance">Savings Balance (₹)</label>
                             <input 
                                 type="number" 
                                 id="savings_balance" 
                                 required 
                                 min="0" 
-                                max="50000000" 
+                                max="500000000" 
                                 placeholder="e.g. 150000"
                                 value={formData.savings_balance}
                                 onChange={handleChange}
@@ -378,14 +444,14 @@ export default function NewAssessment({ onAssessmentAdded }) {
                     <div className="form-section-title">3. Loan Proposal</div>
                     <div className="form-grid">
                         <div className="form-group">
-                            <label htmlFor="loan_amnt">Requested Loan Amount ($)</label>
+                            <label htmlFor="loan_amnt">Requested Loan Amount (₹)</label>
                             <input 
                                 type="number" 
                                 id="loan_amnt" 
                                 required 
                                 min="500" 
-                                max="1000000" 
-                                placeholder="e.g. 15000"
+                                max="100000000" 
+                                placeholder="e.g. 200000"
                                 value={formData.loan_amnt}
                                 onChange={handleChange}
                             />
@@ -457,34 +523,14 @@ export default function NewAssessment({ onAssessmentAdded }) {
                         </div>
                     ) : (
                         <div id="results-active" className="results-active">
-                            {/* Highest Accuracy Model Selection Banner */}
-                            <div style={{
-                                background: 'linear-gradient(135deg, rgba(99, 102, 241, 0.15) 0%, rgba(16, 185, 129, 0.15) 100%)',
-                                border: '1px solid rgba(99, 102, 241, 0.35)',
-                                borderRadius: '12px',
-                                padding: '14px 16px',
-                                marginBottom: '16px',
-                                width: '100%',
-                                textAlign: 'left',
-                                boxShadow: '0 4px 16px rgba(0,0,0,0.2)'
-                            }}>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#34d399', fontWeight: '700', fontSize: '0.95rem', marginBottom: '4px' }}>
-                                    <i className="fa-solid fa-trophy" style={{ color: '#f59e0b' }}></i>
-                                    Highest Accuracy Model Selected: {predictionResult.model_info?.selected_model || "Random Forest Classifier"} ({predictionResult.model_info?.accuracy || "100.00%"})
-                                </div>
-                                <p style={{ color: '#e5e7eb', fontSize: '0.82rem', lineHeight: '1.45', margin: 0 }}>
-                                    {predictionResult.model_info?.reason || "This model's output is printed here because it achieved the highest accuracy (100.00%) among all 5 evaluated models."}
-                                </p>
-                            </div>
-
                             {/* Arc Gauge */}
                             <div className="gauge-container">
-                                <svg className="gauge-svg" viewBox="0 0 100 60">
-                                    <path className="gauge-track" d="M15 50 A 35 35 0 0 1 85 50"></path>
+                                <svg className="gauge-svg" viewBox="0 0 120 65">
+                                    <path className="gauge-track" d="M14 56 A 46 46 0 0 1 106 56"></path>
                                     <path 
                                         id="gauge-fill" 
                                         className="gauge-fill" 
-                                        d="M15 50 A 35 35 0 0 1 85 50"
+                                        d="M14 56 A 46 46 0 0 1 106 56"
                                         style={{ strokeDashoffset: offset, stroke: gaugeColor }}
                                     ></path>
                                 </svg>
@@ -506,15 +552,21 @@ export default function NewAssessment({ onAssessmentAdded }) {
                                     <i className="fa-solid fa-coins"></i> Loan Recommendation
                                 </div>
                                 <div className="analysis-row">
+                                    <span>Applicant:</span>
+                                    <span className="analysis-val" style={{ color: '#818cf8', fontWeight: 600 }}>
+                                        {predictionResult.applicant_name || formData.applicant_name || 'Applicant'}
+                                    </span>
+                                </div>
+                                <div className="analysis-row">
                                     <span>Recommended Cap:</span>
                                     <span className="analysis-val" id="rec-cap">
-                                        ${predictionResult.recommended_cap.toLocaleString()}
+                                        ₹{predictionResult.recommended_cap.toLocaleString('en-IN')}
                                     </span>
                                 </div>
                                 <div className="analysis-row">
                                     <span>Affordable EMI:</span>
                                     <span className="analysis-val text-success" id="rec-emi">
-                                        ${predictionResult.affordable_emi.toLocaleString()}/mo
+                                        ₹{predictionResult.affordable_emi.toLocaleString('en-IN')}/mo
                                     </span>
                                 </div>
                                 <div className="analysis-row">
@@ -524,59 +576,6 @@ export default function NewAssessment({ onAssessmentAdded }) {
                                         {predictionResult.decision === 'Rejected' && <span className="text-danger">Declined (High Risk)</span>}
                                         {predictionResult.decision !== 'Approved' && predictionResult.decision !== 'Rejected' && <span className="text-warning">Review Needed (Medium Risk)</span>}
                                     </span>
-                                </div>
-                            </div>
-
-                            {/* 5-Model Accuracy Comparison Table */}
-                            <div className="analysis-panel" style={{ marginBottom: '16px' }}>
-                                <div className="analysis-title" style={{ color: '#818cf8', fontWeight: '600', fontSize: '0.85rem' }}>
-                                    <i className="fa-solid fa-square-poll-vertical"></i> 5-Model Accuracy Comparison
-                                </div>
-                                <div style={{ overflowX: 'auto', marginTop: '8px' }}>
-                                    <table style={{ width: '100%', fontSize: '0.78rem', borderCollapse: 'collapse', color: '#e5e7eb' }}>
-                                        <thead>
-                                            <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.1)', color: '#9ca3af', textAlign: 'left' }}>
-                                                <th style={{ padding: '6px 8px' }}>Model Name</th>
-                                                <th style={{ padding: '6px 8px', textAlign: 'center' }}>Accuracy</th>
-                                                <th style={{ padding: '6px 8px', textAlign: 'center' }}>F1 Score</th>
-                                                <th style={{ padding: '6px 8px', textAlign: 'right' }}>Status</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            {(predictionResult.model_info?.compared_models || [
-                                                { name: "Random Forest Classifier", accuracy: "100.00%", f1_score: "100.00%", selected: true },
-                                                { name: "XGBoost Classifier", accuracy: "96.93%", f1_score: "92.89%", selected: false },
-                                                { name: "LightGBM Classifier", accuracy: "94.56%", f1_score: "87.13%", selected: false },
-                                                { name: "Gradient Boosting Classifier", accuracy: "92.46%", f1_score: "81.89%", selected: false },
-                                                { name: "Logistic Regression Classifier", accuracy: "89.39%", f1_score: "75.76%", selected: false }
-                                            ]).map((m, idx) => (
-                                                <tr key={idx} style={{
-                                                    borderBottom: '1px solid rgba(255,255,255,0.04)',
-                                                    background: m.selected ? 'rgba(16, 185, 129, 0.12)' : 'transparent',
-                                                    fontWeight: m.selected ? '600' : '400'
-                                                }}>
-                                                    <td style={{ padding: '6px 8px', color: m.selected ? '#34d399' : '#d1d5db' }}>
-                                                        {m.selected ? '🏆 ' : ''}{m.name}
-                                                    </td>
-                                                    <td style={{ padding: '6px 8px', textAlign: 'center', color: m.selected ? '#34d399' : '#d1d5db' }}>
-                                                        {m.accuracy}
-                                                    </td>
-                                                    <td style={{ padding: '6px 8px', textAlign: 'center', color: m.selected ? '#34d399' : '#9ca3af' }}>
-                                                        {m.f1_score}
-                                                    </td>
-                                                    <td style={{ padding: '6px 8px', textAlign: 'right' }}>
-                                                        {m.selected ? (
-                                                            <span style={{ background: '#059669', color: '#fff', padding: '2px 6px', borderRadius: '4px', fontSize: '0.7rem' }}>
-                                                                Output Used
-                                                            </span>
-                                                        ) : (
-                                                            <span style={{ color: '#6b7280', fontSize: '0.7rem' }}>Evaluated</span>
-                                                        )}
-                                                    </td>
-                                                </tr>
-                                            ))}
-                                        </tbody>
-                                    </table>
                                 </div>
                             </div>
 
@@ -600,6 +599,35 @@ export default function NewAssessment({ onAssessmentAdded }) {
                                     )}
                                 </div>
                             </div>
+
+                            {/* Professional PDF Report Download Button */}
+                            <button 
+                                type="button" 
+                                id="btn-download-pdf" 
+                                style={{ 
+                                    width: '100%', 
+                                    marginTop: '16px', 
+                                    display: 'flex', 
+                                    alignItems: 'center', 
+                                    justifyContent: 'center', 
+                                    gap: '10px',
+                                    background: 'linear-gradient(135deg, #4f46e5 0%, #3b82f6 100%)',
+                                    color: '#ffffff',
+                                    fontWeight: '600',
+                                    padding: '12px 18px',
+                                    borderRadius: '10px',
+                                    boxShadow: '0 4px 14px rgba(79, 70, 229, 0.35)',
+                                    cursor: isDownloadingPdf ? 'not-allowed' : 'pointer',
+                                    border: 'none',
+                                    fontSize: '0.92rem',
+                                    transition: 'all 0.2s ease'
+                                }}
+                                onClick={handleDownloadPdf}
+                                disabled={isDownloadingPdf}
+                            >
+                                <i className="fa-solid fa-file-pdf" style={{ fontSize: '1.1rem', color: '#fca5a5' }}></i>
+                                {isDownloadingPdf ? 'Generating Official PDF...' : 'Download Full Assessment Report (PDF)'}
+                            </button>
                         </div>
                     )}
                 </div>

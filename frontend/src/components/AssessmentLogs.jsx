@@ -4,6 +4,46 @@ export default function AssessmentLogs({ assessments = [], onClearLogs }) {
     const [searchQuery, setSearchQuery] = useState('');
     const [statusFilter, setStatusFilter] = useState('all');
 
+    const handleDownloadItemPdf = async (item) => {
+        try {
+            const response = await fetch(`/api/history/${item.id}/pdf`);
+            const appName = item.applicant_name || 'Applicant';
+            const cleanName = appName.replace(/[/\\?%*:|"<>]/g, '').trim() || 'Applicant';
+            const downloadFilename = `${cleanName} Loan Risk.pdf`;
+
+            if (!response.ok) {
+                const fallbackRes = await fetch('/api/download-report-pdf', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(item)
+                });
+                if (!fallbackRes.ok) throw new Error('Failed to generate PDF');
+                const blob = await fallbackRes.blob();
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = downloadFilename;
+                document.body.appendChild(a);
+                a.click();
+                a.remove();
+                window.URL.revokeObjectURL(url);
+                return;
+            }
+            const blob = await response.blob();
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = downloadFilename;
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            window.URL.revokeObjectURL(url);
+        } catch (err) {
+            console.error('Error downloading log PDF:', err);
+            alert('Failed to download report PDF.');
+        }
+    };
+
     const handleClear = async () => {
         if (window.confirm('Are you sure you want to clear all database logs? This cannot be undone.')) {
             if (onClearLogs) {
@@ -21,9 +61,10 @@ export default function AssessmentLogs({ assessments = [], onClearLogs }) {
 
         if (searchQuery.trim()) {
             const query = searchQuery.toLowerCase();
+            const matchName = (item.applicant_name || '').toLowerCase().includes(query);
             const matchIntent = (item.intent || '').toLowerCase().includes(query);
             const matchEdu = (item.education || '').toLowerCase().includes(query);
-            return matchIntent || matchEdu;
+            return matchName || matchIntent || matchEdu;
         }
 
         return true;
@@ -50,8 +91,8 @@ export default function AssessmentLogs({ assessments = [], onClearLogs }) {
                     <input 
                         type="text" 
                         id="log-search" 
-                        placeholder="Search logs by Intent or Education..." 
-                        style={{ width: '320px' }}
+                        placeholder="Search logs by Name, Intent or Education..." 
+                        style={{ width: '340px' }}
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
                     />
@@ -76,9 +117,9 @@ export default function AssessmentLogs({ assessments = [], onClearLogs }) {
                         <thead>
                             <tr>
                                 <th>Date/Time</th>
-                                <th>Demographics</th>
-                                <th>Financials & Savings</th>
-                                <th>Loan Amount</th>
+                                <th>Applicant & Demographics</th>
+                                <th>Financials & Savings (₹)</th>
+                                <th>Loan Amount (₹)</th>
                                 <th>Intent</th>
                                 <th>Credit & History</th>
                                 <th>Risk Prob</th>
@@ -114,7 +155,10 @@ export default function AssessmentLogs({ assessments = [], onClearLogs }) {
                                         <tr key={item.id || Math.random()}>
                                             <td>{dateStr}</td>
                                             <td>
-                                                <div style={{ fontWeight: 500 }}>
+                                                <div style={{ fontWeight: 600, color: '#f3f4f6' }}>
+                                                    {item.applicant_name || 'Applicant'}
+                                                </div>
+                                                <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
                                                     {(item.gender || '').toUpperCase()}, {item.age}y
                                                 </div>
                                                 <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
@@ -123,13 +167,13 @@ export default function AssessmentLogs({ assessments = [], onClearLogs }) {
                                                 </div>
                                             </td>
                                             <td>
-                                                <div>${Number(item.income).toLocaleString()}/yr</div>
+                                                <div style={{ fontWeight: 500 }}>₹{Number(item.income).toLocaleString('en-IN')}/yr</div>
                                                 <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                                                    {item.savings !== undefined && item.savings !== null ? `Savings: $${Number(item.savings).toLocaleString()}` : `${item.exp}y exp`}
+                                                    {item.savings !== undefined && item.savings !== null ? `Savings: ₹${Number(item.savings).toLocaleString('en-IN')}` : `${item.exp}y exp`}
                                                     {item.vehicle ? ` • Veh: ${item.vehicle}` : ''}
                                                 </div>
                                             </td>
-                                            <td style={{ fontWeight: 600 }}>${Number(item.loan).toLocaleString()}</td>
+                                            <td style={{ fontWeight: 600 }}>₹{Number(item.loan).toLocaleString('en-IN')}</td>
                                             <td><span style={{ fontSize: '0.8125rem', fontWeight: 500 }}>{item.intent}</span></td>
                                             <td>
                                                 <div style={{ fontWeight: 600 }}>{item.credit_score}</div>
@@ -138,7 +182,21 @@ export default function AssessmentLogs({ assessments = [], onClearLogs }) {
                                                 </div>
                                             </td>
                                             <td className={`${riskColor} font-bold`}>{Number(item.risk).toFixed(1)}%</td>
-                                            <td>{statusBadge}</td>
+                                            <td>
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                                    {statusBadge}
+                                                    <button 
+                                                        type="button" 
+                                                        className="btn btn-secondary" 
+                                                        style={{ padding: '3px 8px', fontSize: '0.72rem', display: 'flex', alignItems: 'center', gap: '4px' }}
+                                                        title="Download Official Assessment PDF Report"
+                                                        onClick={() => handleDownloadItemPdf(item)}
+                                                    >
+                                                        <i className="fa-solid fa-file-pdf" style={{ color: '#ef4444' }}></i>
+                                                        PDF
+                                                    </button>
+                                                </div>
+                                            </td>
                                         </tr>
                                     );
                                 })

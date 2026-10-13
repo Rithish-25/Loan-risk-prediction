@@ -45,6 +45,7 @@ def sync():
             data = {
                 "id": r.get("id"),
                 "date": r.get("date"),
+                "applicant_name": r.get("applicant_name", "Applicant"),
                 "age": r.get("age"),
                 "gender": r.get("gender"),
                 "education": r.get("education"),
@@ -68,12 +69,12 @@ def sync():
             }
             cursor.execute("""
                 INSERT OR REPLACE INTO assessments (
-                    id, date, age, gender, education, income, exp, home, 
+                    id, date, applicant_name, age, gender, education, income, exp, home, 
                     loan, intent, rate, dti, cred_len, credit_score, defaults,
                     marital_status, dependents, vehicle, bank_age, savings,
                     risk, decision
                 ) VALUES (
-                    :id, :date, :age, :gender, :education, :income, :exp, :home,
+                    :id, :date, :applicant_name, :age, :gender, :education, :income, :exp, :home,
                     :loan, :intent, :rate, :dti, :cred_len, :credit_score, :defaults,
                     :marital_status, :dependents, :vehicle, :bank_age, :savings,
                     :risk, :decision

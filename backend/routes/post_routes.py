@@ -1,15 +1,20 @@
 from fastapi import APIRouter, HTTPException
+from fastapi.responses import Response
 from pydantic import BaseModel, Field
 import pandas as pd
 import random
 import datetime
 import database
 import model_loader
+import pdf_generator
 
 router = APIRouter()
 
 # Pydantic schema for validation (13 existing + 5 new features)
 class PredictRequest(BaseModel):
+    # Applicant identification
+    applicant_name: str = Field(default="Applicant")
+
     # Existing features
     person_age: float = Field(..., ge=18, le=100)
     person_gender: str
@@ -165,6 +170,7 @@ async def predict_loan_risk(req: PredictRequest):
         db_record = {
             "id": tx_id,
             "date": timestamp,
+            "applicant_name": req.applicant_name.strip() if req.applicant_name and req.applicant_name.strip() else "Applicant",
             "age": int(req.person_age),
             "gender": req.person_gender,
             "education": req.person_education,
@@ -186,6 +192,10 @@ async def predict_loan_risk(req: PredictRequest):
             "risk": round(risk_prob, 2),
             "decision": "Approved" if decision == "Conditional" else decision
         }
+        
+        # Persist assessment record to SQLite database
+        database.insert_assessment(db_record)
+
         # 6. Model Accuracy Comparison Info for Webpage Display
         all_models_summary = [
             {"name": "Random Forest Classifier", "accuracy": "100.00%", "f1_score": "100.00%", "selected": True, "type": "Bagging Ensemble"},
@@ -221,6 +231,8 @@ async def predict_loan_risk(req: PredictRequest):
 
         return {
             "id": tx_id,
+            "date": timestamp,
+            "applicant_name": db_record["applicant_name"],
             "risk": round(risk_prob, 2),
             "decision": decision,
             "recommended_cap": recommended_cap,
@@ -230,4 +242,21 @@ async def predict_loan_risk(req: PredictRequest):
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Model execution error: {str(e)}")
+
+@router.post("/api/download-report-pdf")
+async def download_report_pdf(report_data: dict):
+    try:
+        pdf_bytes = pdf_generator.generate_assessment_pdf(report_data)
+        applicant_name = report_data.get("applicant_name") or report_data.get("name") or "Applicant"
+        clean_name = "".join(c for c in applicant_name if c.isalnum() or c in (" ", "-", "_")).strip() or "Applicant"
+        filename = f"{clean_name} Loan Risk.pdf"
+        return Response(
+            content=pdf_bytes,
+            media_type="application/pdf",
+            headers={
+                "Content-Disposition": f'attachment; filename="{filename}"'
+            }
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to generate report PDF: {str(e)}")
 

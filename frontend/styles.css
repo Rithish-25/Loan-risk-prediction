@@ -485,51 +485,62 @@ select option {
 /* Dynamic Gauge Chart Container */
 .gauge-container {
     position: relative;
-    width: 180px;
-    height: 110px;
-    margin: 20px auto;
+    width: 210px;
+    height: 120px;
+    margin: 16px auto 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .gauge-svg {
     width: 100%;
     height: 100%;
+    overflow: visible;
 }
 
 .gauge-track {
     fill: none;
-    stroke: rgba(255, 255, 255, 0.06);
-    stroke-width: 14;
+    stroke: rgba(255, 255, 255, 0.08);
+    stroke-width: 10;
     stroke-linecap: round;
 }
 
 .gauge-fill {
     fill: none;
-    stroke-width: 14;
+    stroke-width: 10;
     stroke-linecap: round;
-    stroke-dasharray: 220; /* Circumference mapping */
-    stroke-dashoffset: 220;
+    stroke-dasharray: 290; /* Circumference mapping */
+    stroke-dashoffset: 290;
     transition: stroke-dashoffset 1s cubic-bezier(0.4, 0, 0.2, 1), stroke 0.5s ease;
 }
 
 .gauge-text {
     position: absolute;
-    bottom: 0;
+    bottom: 10px;
     left: 50%;
     transform: translateX(-50%);
     text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    pointer-events: none;
 }
 
 .gauge-val {
-    font-size: 1.75rem;
+    font-size: 1.65rem;
     font-weight: 700;
-    line-height: 1.2;
+    line-height: 1.1;
+    margin-bottom: 3px;
 }
 
 .gauge-lbl {
-    font-size: 0.75rem;
+    font-size: 0.7rem;
     color: var(--text-secondary);
     text-transform: uppercase;
-    letter-spacing: 0.05em;
+    letter-spacing: 0.08em;
+    font-weight: 600;
 }
 
 .result-badge {

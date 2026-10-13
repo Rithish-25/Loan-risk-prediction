@@ -15,6 +15,7 @@ def init_db():
         CREATE TABLE IF NOT EXISTS assessments (
             id TEXT PRIMARY KEY,
             date TEXT NOT NULL,
+            applicant_name TEXT,
             age INTEGER NOT NULL,
             gender TEXT NOT NULL,
             education TEXT NOT NULL,
@@ -42,6 +43,7 @@ def init_db():
     cursor.execute("PRAGMA table_info(assessments)")
     existing_cols = [row["name"] for row in cursor.fetchall()]
     new_cols = [
+        ("applicant_name", "TEXT DEFAULT 'Applicant'"),
         ("marital_status", "TEXT"),
         ("dependents", "INTEGER"),
         ("vehicle", "TEXT"),
@@ -56,16 +58,17 @@ def init_db():
     conn.close()
 
 def insert_assessment(record):
+    record.setdefault("applicant_name", "Applicant")
     conn = get_db_connection()
     cursor = conn.cursor()
     cursor.execute("""
         INSERT INTO assessments (
-            id, date, age, gender, education, income, exp, home, 
+            id, date, applicant_name, age, gender, education, income, exp, home, 
             loan, intent, rate, dti, cred_len, credit_score, defaults,
             marital_status, dependents, vehicle, bank_age, savings,
             risk, decision
         ) VALUES (
-            :id, :date, :age, :gender, :education, :income, :exp, :home,
+            :id, :date, :applicant_name, :age, :gender, :education, :income, :exp, :home,
             :loan, :intent, :rate, :dti, :cred_len, :credit_score, :defaults,
             :marital_status, :dependents, :vehicle, :bank_age, :savings,
             :risk, :decision
@@ -90,4 +93,12 @@ def delete_all_assessments():
     cursor.execute("DELETE FROM assessments")
     conn.commit()
     conn.close()
+
+def fetch_assessment_by_id(tx_id):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM assessments WHERE id = ?", (tx_id,))
+    row = cursor.fetchone()
+    conn.close()
+    return dict(row) if row else None
 

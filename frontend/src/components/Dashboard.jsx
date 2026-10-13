@@ -92,8 +92,8 @@ export default function Dashboard({ assessments = [], onNavigateToLogs }) {
                             <thead>
                                 <tr>
                                     <th>Applicant</th>
-                                    <th>Loan Details</th>
-                                    <th>Income</th>
+                                    <th>Loan Details (₹)</th>
+                                    <th>Income (₹)</th>
                                     <th style={{ textAlign: 'center' }}>Risk %</th>
                                     <th style={{ textAlign: 'right' }}>Status</th>
                                 </tr>
@@ -118,14 +118,14 @@ export default function Dashboard({ assessments = [], onNavigateToLogs }) {
                                         return (
                                             <tr key={app.id || Math.random()}>
                                                 <td>
-                                                    <div style={{ fontWeight: 600 }}>Applicant ({app.age}y)</div>
-                                                    <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>{app.education}</div>
+                                                    <div style={{ fontWeight: 600 }}>{app.applicant_name || 'Applicant'}</div>
+                                                    <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>{app.age}y • {app.education}</div>
                                                 </td>
                                                 <td>
-                                                    <div style={{ fontWeight: 500 }}>${Number(app.loan).toLocaleString()}</div>
+                                                    <div style={{ fontWeight: 500 }}>₹{Number(app.loan).toLocaleString('en-IN')}</div>
                                                     <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>{app.intent}</div>
                                                 </td>
-                                                <td style={{ fontWeight: 500 }}>${Number(app.income).toLocaleString()}</td>
+                                                <td style={{ fontWeight: 500 }}>₹{Number(app.income).toLocaleString('en-IN')}</td>
                                                 <td style={{ textAlign: 'center' }} className={`${riskColor} font-bold`}>{app.risk.toFixed(1)}%</td>
                                                 <td style={{ textAlign: 'right' }}>{statusBadge}</td>
                                             </tr>
