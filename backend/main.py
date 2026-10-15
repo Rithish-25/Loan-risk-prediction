@@ -8,7 +8,7 @@ import database
 import model_loader
 
 # Import method route modules
-from routes import post_routes, get_routes, delete_routes
+from routes import post_routes, get_routes, delete_routes, document_routes
 
 app = FastAPI(title="CreditGuard AI Risk Prediction API")
 
@@ -33,6 +33,7 @@ def startup_event():
 app.include_router(post_routes.router)
 app.include_router(get_routes.router)
 app.include_router(delete_routes.router)
+app.include_router(document_routes.router)
 
 # Mount Frontend static files to root "/"
 # Note: Mount at "/" must be defined last so it doesn't hijack api routes

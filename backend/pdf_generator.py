@@ -258,7 +258,35 @@ def generate_assessment_pdf(data: dict) -> bytes:
         ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
     ]))
     story.append(kpi_table)
-    story.append(Spacer(1, 12))
+    story.append(Spacer(1, 10))
+
+    # Optional KYC Authentication Badge
+    if data.get("kyc_verified"):
+        kyc_score = data.get("kyc_trust_score", 95)
+        kyc_badge_p = Paragraph(
+            f"<b>✓ KYC STATUTORY PROOFS AUTHENTICATED ({kyc_score}/100 Trust Score)</b><br/>"
+            f"<font color='#047857'>Official Proofs Verified Original: Income Certificate (Revenue Dept/Tahsildar), "
+            f"UIDAI Aadhaar Card (Verhoeff Checksum Passed), and Income Tax PAN Card (Individual 'P' Category Validated).</font>",
+            ParagraphStyle(
+                "KycBadge",
+                parent=styles["Normal"],
+                fontName="Helvetica",
+                fontSize=8,
+                leading=11,
+                textColor=colors.HexColor("#065f46")
+            )
+        )
+        t_kyc = Table([[kyc_badge_p]], colWidths=[540])
+        t_kyc.setStyle(TableStyle([
+            ("BACKGROUND", (0, 0), (-1, -1), colors.HexColor("#ecfdf5")),
+            ("BOX", (0, 0), (-1, -1), 0.75, colors.HexColor("#10b981")),
+            ("TOPPADDING", (0, 0), (-1, -1), 6),
+            ("BOTTOMPADDING", (0, 0), (-1, -1), 6),
+            ("LEFTPADDING", (0, 0), (-1, -1), 10),
+            ("RIGHTPADDING", (0, 0), (-1, -1), 10),
+        ]))
+        story.append(t_kyc)
+        story.append(Spacer(1, 10))
 
     # 3. DETAILED APPLICANT PROFILE & CREDIT CHARACTERISTICS
     story.append(Paragraph("1. Applicant Profile & Demographic Background", section_heading))

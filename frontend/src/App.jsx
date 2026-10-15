@@ -2,11 +2,13 @@ import React, { useState, useEffect, useCallback } from 'react';
 import Dashboard from './components/Dashboard';
 import NewAssessment from './components/NewAssessment';
 import AssessmentLogs from './components/AssessmentLogs';
+import KYCVerification from './components/KYCVerification';
 
 export default function App() {
     const [activeTab, setActiveTab] = useState('dashboard');
     const [assessments, setAssessments] = useState([]);
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+    const [prefilledKycData, setPrefilledKycData] = useState(null);
 
     const fetchLogs = useCallback(async () => {
         try {
@@ -46,6 +48,11 @@ export default function App() {
         if (tab === 'dashboard' || tab === 'logs') {
             fetchLogs();
         }
+    };
+
+    const handleApplyKycToAssessment = (kycData) => {
+        setPrefilledKycData(kycData);
+        setActiveTab('assessment');
     };
 
     return (
@@ -88,6 +95,15 @@ export default function App() {
                     </li>
                     <li>
                         <a 
+                            className={`menu-item ${activeTab === 'kyc' ? 'active' : ''}`}
+                            onClick={() => handleTabSwitch('kyc')}
+                        >
+                            <i className="fa-solid fa-id-card-clip"></i>
+                            <span>KYC Verification</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a 
                             className={`menu-item ${activeTab === 'assessment' ? 'active' : ''}`}
                             onClick={() => handleTabSwitch('assessment')}
                         >
@@ -123,9 +139,17 @@ export default function App() {
                     />
                 )}
 
+                {activeTab === 'kyc' && (
+                    <KYCVerification 
+                        onApplyToAssessment={handleApplyKycToAssessment}
+                    />
+                )}
+
                 {activeTab === 'assessment' && (
                     <NewAssessment 
                         onAssessmentAdded={fetchLogs}
+                        initialKycData={prefilledKycData}
+                        onNavigateToKyc={() => handleTabSwitch('kyc')}
                     />
                 )}
 

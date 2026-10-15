@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 
-export default function NewAssessment({ onAssessmentAdded }) {
+export default function NewAssessment({ onAssessmentAdded, initialKycData, onNavigateToKyc }) {
     const [formData, setFormData] = useState({
         applicant_name: '',
         person_age: '',
@@ -21,6 +21,18 @@ export default function NewAssessment({ onAssessmentAdded }) {
         bank_account_age: '',
         savings_balance: ''
     });
+
+    useEffect(() => {
+        if (initialKycData) {
+            setFormData(prev => ({
+                ...prev,
+                applicant_name: initialKycData.applicant_name || prev.applicant_name,
+                person_income: initialKycData.person_income ? initialKycData.person_income.toString() : prev.person_income,
+                person_gender: initialKycData.person_gender ? initialKycData.person_gender.toLowerCase() : prev.person_gender,
+                person_age: initialKycData.person_age ? initialKycData.person_age.toString() : prev.person_age
+            }));
+        }
+    }, [initialKycData]);
 
     const [predictionResult, setPredictionResult] = useState(null);
     const [isLoading, setIsLoading] = useState(false);
@@ -45,7 +57,10 @@ export default function NewAssessment({ onAssessmentAdded }) {
                 person_emp_exp: parseInt(formData.person_emp_exp, 10) || 0,
                 bank_account_age: parseInt(formData.bank_account_age, 10) || 1,
                 number_of_dependents: parseInt(formData.number_of_dependents, 10) || 0,
-                loan_percent_income: (parseFloat(formData.loan_amnt) || 0) / (parseFloat(formData.person_income) || 1)
+                loan_percent_income: (parseFloat(formData.loan_amnt) || 0) / (parseFloat(formData.person_income) || 1),
+                kyc_verified: initialKycData ? initialKycData.kyc_verified : false,
+                kyc_trust_score: initialKycData ? initialKycData.kyc_trust_score : null,
+                kyc_status_label: initialKycData ? initialKycData.kyc_status_label : null
             };
 
             const response = await fetch('/api/download-report-pdf', {
@@ -230,6 +245,45 @@ export default function NewAssessment({ onAssessmentAdded }) {
                 {/* Input Form Panel */}
                 <form id="assessment-form" className="glass-panel" style={{ padding: '28px' }} onSubmit={handleSubmit}>
                     
+                    {/* KYC Document Proof Status Banner */}
+                    {initialKycData && initialKycData.kyc_verified ? (
+                        <div className="kyc-verified-banner">
+                            <div className="banner-info">
+                                <i className="fa-solid fa-circle-check"></i>
+                                <div>
+                                    <h4>KYC Documents Authenticated ({initialKycData.kyc_trust_score}/100 Trust Score)</h4>
+                                    <p>Aadhaar Card, PAN Card & Income Certificate verified original and auto-populated below.</p>
+                                </div>
+                            </div>
+                            <button 
+                                type="button" 
+                                className="btn btn-secondary" 
+                                style={{ padding: '6px 14px', fontSize: '0.8rem' }}
+                                onClick={onNavigateToKyc}
+                            >
+                                <i className="fa-solid fa-id-card-clip"></i> View KYC Audit
+                            </button>
+                        </div>
+                    ) : (
+                        <div className="kyc-prompt-banner">
+                            <div className="banner-info">
+                                <i className="fa-solid fa-id-card-clip"></i>
+                                <div>
+                                    <h4>Verify 3 Compulsory Proofs (Income, Aadhaar, PAN)</h4>
+                                    <p>Upload all 3 compulsory proofs to inspect authenticity and auto-fill details into this form.</p>
+                                </div>
+                            </div>
+                            <button 
+                                type="button" 
+                                className="btn btn-secondary" 
+                                style={{ padding: '6px 14px', fontSize: '0.8rem' }}
+                                onClick={onNavigateToKyc}
+                            >
+                                Verify Proofs First
+                            </button>
+                        </div>
+                    )}
+
                     {/* Section 1: Personal Profile */}
                     <div className="form-section-title">1. Personal Profile</div>
                     <div className="form-grid">
@@ -239,7 +293,7 @@ export default function NewAssessment({ onAssessmentAdded }) {
                                 type="text" 
                                 id="applicant_name" 
                                 required 
-                                placeholder="e.g. Rahul Sharma" 
+                                placeholder="Enter Your Name" 
                                 value={formData.applicant_name}
                                 onChange={handleChange}
                             />
@@ -252,7 +306,7 @@ export default function NewAssessment({ onAssessmentAdded }) {
                                 required 
                                 min="18" 
                                 max="100" 
-                                placeholder="e.g. 28" 
+                                placeholder="Enter Age" 
                                 value={formData.person_age}
                                 onChange={handleChange}
                             />
