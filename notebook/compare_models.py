@@ -2,6 +2,7 @@ import os
 import sys
 import joblib
 import pandas as pd
+import numpy as np
 
 if hasattr(sys.stdout, 'reconfigure'):
     sys.stdout.reconfigure(encoding='utf-8')
@@ -49,7 +50,14 @@ for name, filename in model_files.items():
         model = joblib.load(file_path)
         X_trans = model.named_steps["preprocessor"].transform(sample_input)
         pred = model.named_steps["classifier"].predict(X_trans)[0]
-        prob = model.named_steps["classifier"].predict_proba(X_trans)[0][1] * 100.0
+        try:
+            prob = model.named_steps["classifier"].predict_proba(X_trans)[0][1] * 100.0
+        except Exception:
+            try:
+                dec = model.named_steps["classifier"].decision_function(X_trans)[0]
+                prob = 100.0 / (1.0 + float(np.exp(-dec)))
+            except Exception:
+                prob = float(pred) * 100.0
         
         status = "REJECTED (High Risk)" if pred == 1 else "APPROVED (Safe)"
         print(f"[{name:19}] Prediction: {pred} | Risk Probability: {prob:6.2f}% -> {status}")

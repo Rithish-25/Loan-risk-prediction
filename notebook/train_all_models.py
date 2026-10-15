@@ -44,7 +44,7 @@ preprocessor = ColumnTransformer(
 
 # 3. Define the 5 Models
 models = {
-    "random_forest": RandomForestClassifier(n_estimators=100, random_state=42),
+    "random_forest": RandomForestClassifier(n_estimators=100, max_depth=16, min_samples_leaf=2, random_state=42),
     "xgboost": XGBClassifier(n_estimators=100, random_state=42, eval_metric="logloss"),
     "lightgbm": LGBMClassifier(n_estimators=100, random_state=42, verbose=-1),
     "logistic_regression": LogisticRegression(max_iter=1000, random_state=42),

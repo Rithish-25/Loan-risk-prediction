@@ -198,8 +198,8 @@ async def predict_loan_risk(req: PredictRequest):
 
         # 6. Model Accuracy Comparison Info for Webpage Display
         all_models_summary = [
-            {"name": "Random Forest Classifier", "accuracy": "100.00%", "f1_score": "100.00%", "selected": True, "type": "Bagging Ensemble"},
-            {"name": "XGBoost Classifier", "accuracy": "96.93%", "f1_score": "92.89%", "selected": False, "type": "Gradient Boosting"},
+            {"name": "Random Forest Classifier", "accuracy": "96.29%", "f1_score": "91.13%", "selected": True, "type": "Bagging Ensemble"},
+            {"name": "XGBoost Classifier", "accuracy": "94.68%", "f1_score": "89.19%", "selected": False, "type": "Gradient Boosting"},
             {"name": "LightGBM Classifier", "accuracy": "94.56%", "f1_score": "87.13%", "selected": False, "type": "Leaf-wise Boosting"},
             {"name": "Gradient Boosting Classifier", "accuracy": "92.46%", "f1_score": "81.89%", "selected": False, "type": "Classic Boosting"},
             {"name": "Logistic Regression Classifier", "accuracy": "89.39%", "f1_score": "75.76%", "selected": False, "type": "Linear Baseline"}

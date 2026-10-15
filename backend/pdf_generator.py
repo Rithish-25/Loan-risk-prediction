@@ -371,7 +371,7 @@ def generate_assessment_pdf(data: dict) -> bytes:
         ],
         [
             Paragraph("Debt-to-Income (DTI)", cell_lbl), Paragraph(f"{dti}%", cell_val),
-            Paragraph("AI Underwriting Engine", cell_lbl), Paragraph("Random Forest Ensemble (100% Acc)", cell_val)
+            Paragraph("AI Underwriting Engine", cell_lbl), Paragraph("Random Forest Ensemble (96.29% Acc)", cell_val)
         ]
     ]
 
