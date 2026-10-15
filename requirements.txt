@@ -1,0 +1,12 @@
+fastapi
+uvicorn
+pandas
+joblib
+scikit-learn==1.6.1
+xgboost
+pydantic
+reportlab
+python-multipart
+pymupdf
+pillow
+opencv-python-headless

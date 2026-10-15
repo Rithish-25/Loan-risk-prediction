@@ -2,11 +2,26 @@ import os
 import re
 import difflib
 import datetime
-import numpy as np
-import cv2
-import pymupdf
-from PIL import Image
 import io
+import numpy as np
+
+try:
+    import cv2
+except Exception:
+    cv2 = None
+
+try:
+    import pymupdf
+except Exception:
+    try:
+        import fitz as pymupdf
+    except Exception:
+        pymupdf = None
+
+try:
+    from PIL import Image
+except Exception:
+    Image = None
 
 # Verhoeff algorithm multiplication table d
 D_TABLE = [
@@ -59,13 +74,19 @@ def verhoeff_generate(num_str: str) -> str:
 
 # Global singleton EasyOCR Reader
 _EASYOCR_READER = None
+_EASYOCR_ATTEMPTED = False
 
 def get_ocr_reader():
     """Lazy initialization of EasyOCR reader to save memory."""
-    global _EASYOCR_READER
-    if _EASYOCR_READER is None:
-        import easyocr
-        _EASYOCR_READER = easyocr.Reader(['en'], gpu=False, verbose=False)
+    global _EASYOCR_READER, _EASYOCR_ATTEMPTED
+    if not _EASYOCR_ATTEMPTED:
+        _EASYOCR_ATTEMPTED = True
+        try:
+            import easyocr
+            _EASYOCR_READER = easyocr.Reader(['en'], gpu=False, verbose=False)
+        except Exception as e:
+            print(f"EasyOCR not available, running in fallback mode: {e}")
+            _EASYOCR_READER = None
     return _EASYOCR_READER
 
 def extract_text_and_meta(file_bytes: bytes, filename: str) -> dict:
@@ -110,16 +131,15 @@ def extract_text_and_meta(file_bytes: bytes, filename: str) -> dict:
                     for img_meta in image_list[:3]:
                         xref = img_meta[0]
                         base_image = doc.extract_image(xref)
-                        image_bytes = base_image["image"]
-                        np_img = np.frombuffer(image_bytes, np.uint8)
-                        cv_img = cv2.imdecode(np_img, cv2.IMREAD_COLOR)
-                        if cv_img is not None:
-                            qr_detector = cv2.QRCodeDetector()
-                            data, bbox, _ = qr_detector.detectAndDecode(cv_img)
-                            if bbox is not None and len(bbox) > 0:
-                                forensics["qr_detected"] = True
-                                forensics["qr_data"] = data
-                                break
+                        if cv2 is not None:
+                            cv_img = cv2.imdecode(np_img, cv2.IMREAD_COLOR)
+                            if cv_img is not None:
+                                qr_detector = cv2.QRCodeDetector()
+                                data, bbox, _ = qr_detector.detectAndDecode(cv_img)
+                                if bbox is not None and len(bbox) > 0:
+                                    forensics["qr_detected"] = True
+                                    forensics["qr_data"] = data
+                                    break
             
             extracted_text = "\n".join(all_text)
             
@@ -129,14 +149,15 @@ def extract_text_and_meta(file_bytes: bytes, filename: str) -> dict:
                 pix = page.get_pixmap(dpi=180)
                 img_bytes = pix.tobytes("png")
                 np_arr = np.frombuffer(img_bytes, np.uint8)
-                cv_img = cv2.imdecode(np_arr, cv2.IMREAD_COLOR)
-                if cv_img is not None:
-                    ocr_res = perform_image_ocr(cv_img)
-                    extracted_text = ocr_res["text"]
-                    forensics["ocr_confidence"] = ocr_res["avg_conf"]
-                    if not forensics["qr_detected"]:
-                        forensics["qr_detected"] = ocr_res["qr_detected"]
-                        forensics["qr_data"] = ocr_res["qr_data"]
+                if cv2 is not None:
+                    cv_img = cv2.imdecode(np_arr, cv2.IMREAD_COLOR)
+                    if cv_img is not None:
+                        ocr_res = perform_image_ocr(cv_img)
+                        extracted_text = ocr_res["text"]
+                        forensics["ocr_confidence"] = ocr_res["avg_conf"]
+                        if not forensics["qr_detected"]:
+                            forensics["qr_detected"] = ocr_res["qr_detected"]
+                            forensics["qr_data"] = ocr_res["qr_data"]
             doc.close()
         except Exception as e:
             try:
@@ -150,37 +171,46 @@ def extract_text_and_meta(file_bytes: bytes, filename: str) -> dict:
     else:
         # Image processing (JPG, PNG, WEBP)
         try:
-            np_arr = np.frombuffer(file_bytes, np.uint8)
-            cv_img = cv2.imdecode(np_arr, cv2.IMREAD_COLOR)
-            if cv_img is not None:
-                # 1. Image forensics: Laplacian sharpness
-                gray = cv2.cvtColor(cv_img, cv2.COLOR_BGR2GRAY)
-                lap_var = cv2.Laplacian(gray, cv2.CV_64F).var()
-                forensics["sharpness_score"] = round(float(lap_var), 1)
-                forensics["is_blurred"] = lap_var < 35.0
-                
-                # Check resolution
-                h, w = cv_img.shape[:2]
-                forensics["width"] = w
-                forensics["height"] = h
-                forensics["dpi_adequate"] = (w >= 300 and h >= 200)
-                
-                # 2. QR Code detection
-                qr_detector = cv2.QRCodeDetector()
-                data, bbox, _ = qr_detector.detectAndDecode(cv_img)
-                if bbox is not None and len(bbox) > 0:
-                    forensics["qr_detected"] = True
-                    forensics["qr_data"] = data
-                
-                # 3. EasyOCR Text extraction
-                ocr_res = perform_image_ocr(cv_img)
-                extracted_text = ocr_res["text"]
-                forensics["ocr_confidence"] = ocr_res["avg_conf"]
-                if not forensics["qr_detected"] and ocr_res["qr_detected"]:
-                    forensics["qr_detected"] = True
-                    forensics["qr_data"] = ocr_res["qr_data"]
+            if cv2 is not None:
+                np_arr = np.frombuffer(file_bytes, np.uint8)
+                cv_img = cv2.imdecode(np_arr, cv2.IMREAD_COLOR)
+                if cv_img is not None:
+                    # 1. Image forensics: Laplacian sharpness
+                    gray = cv2.cvtColor(cv_img, cv2.COLOR_BGR2GRAY)
+                    lap_var = cv2.Laplacian(gray, cv2.CV_64F).var()
+                    forensics["sharpness_score"] = round(float(lap_var), 1)
+                    forensics["is_blurred"] = lap_var < 35.0
+                    
+                    # Check resolution
+                    h, w = cv_img.shape[:2]
+                    forensics["width"] = w
+                    forensics["height"] = h
+                    forensics["dpi_adequate"] = (w >= 300 and h >= 200)
+                    
+                    # 2. QR Code detection
+                    qr_detector = cv2.QRCodeDetector()
+                    data, bbox, _ = qr_detector.detectAndDecode(cv_img)
+                    if bbox is not None and len(bbox) > 0:
+                        forensics["qr_detected"] = True
+                        forensics["qr_data"] = data
+                    
+                    # 3. EasyOCR Text extraction
+                    ocr_res = perform_image_ocr(cv_img)
+                    extracted_text = ocr_res["text"]
+                    forensics["ocr_confidence"] = ocr_res["avg_conf"]
+                    if not forensics["qr_detected"] and ocr_res["qr_detected"]:
+                        forensics["qr_detected"] = True
+                        forensics["qr_data"] = ocr_res["qr_data"]
+                else:
+                    extracted_text = "Failed to decode image bytes."
             else:
-                extracted_text = "Failed to decode image bytes."
+                # PIL fallback
+                if Image is not None:
+                    pil_img = Image.open(io.BytesIO(file_bytes))
+                    forensics["width"] = pil_img.width
+                    forensics["height"] = pil_img.height
+                    forensics["dpi_adequate"] = (pil_img.width >= 300 and pil_img.height >= 200)
+                extracted_text = file_bytes.decode('utf-8', errors='ignore')
         except Exception as e:
             extracted_text = f"Error processing image: {str(e)}"
             
@@ -190,24 +220,34 @@ def extract_text_and_meta(file_bytes: bytes, filename: str) -> dict:
     }
 
 def perform_image_ocr(cv_img) -> dict:
-    """Run EasyOCR on OpenCV image array and calculate average confidence."""
-    reader = get_ocr_reader()
-    ocr_results = reader.readtext(cv_img)
+    """Run EasyOCR on OpenCV image array if reader is available, or fall back gracefully."""
     lines = []
     confs = []
-    for bbox, text, prob in ocr_results:
-        clean = text.strip()
-        if clean:
-            lines.append(clean)
-            confs.append(float(prob))
+    reader = get_ocr_reader()
+    if reader is not None and cv_img is not None:
+        try:
+            ocr_results = reader.readtext(cv_img)
+            for bbox, text, prob in ocr_results:
+                clean = text.strip()
+                if clean:
+                    lines.append(clean)
+                    confs.append(float(prob))
+        except Exception as e:
+            print(f"OCR reading error: {e}")
             
     avg_conf = round(sum(confs) / max(len(confs), 1), 2) if confs else 0.85
     full_text = " ".join(lines)
     
-    # Check for QR in cv_img if not checked yet
-    qr_detector = cv2.QRCodeDetector()
-    data, bbox, _ = qr_detector.detectAndDecode(cv_img)
-    has_qr = bbox is not None and len(bbox) > 0
+    # Check for QR in cv_img if cv2 is available
+    has_qr = False
+    data = ""
+    if cv2 is not None and cv_img is not None:
+        try:
+            qr_detector = cv2.QRCodeDetector()
+            data, bbox, _ = qr_detector.detectAndDecode(cv_img)
+            has_qr = bbox is not None and len(bbox) > 0
+        except Exception:
+            pass
     
     return {
         "text": full_text,
